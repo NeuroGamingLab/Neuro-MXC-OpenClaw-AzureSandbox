@@ -1,4 +1,4 @@
-# Neuro-MXC-OpenClaw-AzureSandbox
+# Neuro MXC OpenClaw Azure Sandbox
 
 Deploy **OpenClaw** on **Azure** in one Terraform apply: a Windows 11 VM with **Microsoft Execution Containers (MXC)** sandboxing for safer AI agent tool execution.
 
@@ -8,16 +8,18 @@ Deploy **OpenClaw** on **Azure** in one Terraform apply: a Windows 11 VM with **
 
 ## Architecture
 
-![Enforcing physical boundaries via MXC and OpenClaw](image.png)
+Enforcing physical boundaries via MXC and OpenClaw
 
 OpenClaw runs inside MXC containers on Windows. Multi-step agent actions are constrained by **OS-enforced boundaries**, reducing unrestricted access to the host session. Developers and IT administrators define boundary rules through MXC’s policy-driven profiles.
 
-| Layer | Role |
-|-------|------|
-| **OpenClaw** | Open-source AI agent runtime (gateway, tools, channels) |
-| **MXC** | Policy-driven, OS-level sandbox for untrusted code / tool execution |
-| **Windows 11 24H2+** | Required host OS for MXC client backends |
-| **Azure VM** | Terraform-provisioned compute in `canadacentral` (configurable) |
+
+| Layer                | Role                                                                |
+| -------------------- | ------------------------------------------------------------------- |
+| **OpenClaw**         | Open-source AI agent runtime (gateway, tools, channels)             |
+| **MXC**              | Policy-driven, OS-level sandbox for untrusted code / tool execution |
+| **Windows 11 24H2+** | Required host OS for MXC client backends                            |
+| **Azure VM**         | Terraform-provisioned compute in `canadacentral` (configurable)     |
+
 
 ---
 
@@ -25,7 +27,7 @@ OpenClaw runs inside MXC containers on Windows. Multi-step agent actions are con
 
 **MXC (Microsoft Execution Containers)** is a policy-driven, OS-level sandbox for running AI agents and untrusted code. It was announced at **Microsoft Build 2026** (June 2, 2026).
 
-- **SDK:** [`@microsoft/mxc-sdk`](https://www.npmjs.com/package/@microsoft/mxc-sdk) (TypeScript); native runtime in [microsoft/mxc](https://github.com/microsoft/mxc)
+- **SDK:** `[@microsoft/mxc-sdk](https://www.npmjs.com/package/@microsoft/mxc-sdk)` (TypeScript); native runtime in [microsoft/mxc](https://github.com/microsoft/mxc)
 - **Status:** Early preview (schema ~`0.6.0-alpha`) — **do not treat MXC profiles as production security boundaries yet**
 - **Requirements:** Windows 11 Enterprise 24H2+ (build 26100+); Windows Server is **not** supported for client-only MXC backends
 
@@ -40,14 +42,16 @@ OpenClaw runs inside MXC containers on Windows. Multi-step agent actions are con
 
 ## What this repo deploys
 
-| Resource | Default |
-|----------|---------|
-| Region | `canadacentral` |
-| OS | Windows 11 Enterprise 24H2 |
-| VM size | `Standard_D4s_v3` (adjust for your quota) |
-| Runtime | Node 24, `@microsoft/mxc-sdk`, OpenClaw |
-| Network | Public IP, NSG rules for RDP (3389) and OpenClaw gateway (18789) |
-| Bootstrap | Custom Script Extension installs and configures the gateway |
+
+| Resource  | Default                                                          |
+| --------- | ---------------------------------------------------------------- |
+| Region    | `canadacentral`                                                  |
+| OS        | Windows 11 Enterprise 24H2                                       |
+| VM size   | `Standard_D4s_v3` (adjust for your quota)                        |
+| Runtime   | Node 24, `@microsoft/mxc-sdk`, OpenClaw                          |
+| Network   | Public IP, NSG rules for RDP (3389) and OpenClaw gateway (18789) |
+| Bootstrap | Custom Script Extension installs and configures the gateway      |
+
 
 ---
 
