@@ -1,0 +1,21 @@
+# Copy to terraform.tfvars and fill in values before apply.
+# cp terraform.tfvars.example terraform.tfvars
+
+# subscription_id = "00000000-0000-0000-0000-000000000000"
+location = "eastus"
+
+admin_password = "ChangeMe-StrongPassw0rd!"
+
+# Restrict inbound access in non-lab environments.
+allowed_rdp_cidr      = "203.0.113.10/32"
+allowed_gateway_cidr  = "203.0.113.10/32"
+
+# If win11-24h2-ent-g2 is unavailable in your subscription/region, try:
+# windows_image = {
+#   publisher = "MicrosoftWindowsDesktop"
+#   offer     = "windows-11"
+#   sku       = "win11-24h2-ent"
+#   version   = "latest"
+# }
+
+mxc_sdk_version = "0.6.0-alpha"
