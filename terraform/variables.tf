@@ -26,9 +26,9 @@ variable "tags" {
 }
 
 variable "vm_size" {
-  description = "Azure VM size. Standard_D4s_v5 supports nested virtualization for future MXC backends."
+  description = "Azure VM size. Standard_D4s_v3 works on Azure for Students; D4s_v5 supports nested virtualization when quota allows."
   type        = string
-  default     = "Standard_D4s_v5"
+  default     = "Standard_D4s_v3"
 }
 
 variable "admin_username" {
@@ -54,7 +54,7 @@ variable "windows_image" {
   default = {
     publisher = "MicrosoftWindowsDesktop"
     offer     = "windows-11"
-    sku       = "win11-24h2-ent-g2"
+    sku       = "win11-24h2-ent"
     version   = "latest"
   }
 }
@@ -66,9 +66,21 @@ variable "license_type" {
 }
 
 variable "os_disk_size_gb" {
-  description = "OS disk size in GB."
+  description = "OS disk size in GB. 256+ recommended when install_ollama pulls local models."
   type        = number
   default     = 256
+}
+
+variable "install_ollama" {
+  description = "Install Ollama and configure OpenClaw to use a local model (no cloud LLM API key required)."
+  type        = bool
+  default     = true
+}
+
+variable "ollama_model" {
+  description = "Ollama model tag to pull in a background task after bootstrap (e.g. llama3.2:3b, llama3.2)."
+  type        = string
+  default     = "llama3.2:3b"
 }
 
 variable "allowed_rdp_cidr" {
@@ -104,13 +116,19 @@ variable "run_bootstrap_extension" {
 variable "mxc_sdk_version" {
   description = "Pinned npm version for @microsoft/mxc-sdk."
   type        = string
-  default     = "0.6.0-alpha"
+  default     = "0.6.1"
 }
 
 variable "openclaw_npm_package" {
   description = "npm package spec for OpenClaw."
   type        = string
   default     = "openclaw@latest"
+}
+
+variable "openclaw_control_ui_disable_device_auth" {
+  description = "Set gateway.controlUi.dangerouslyDisableDeviceAuth so Control UI works over plain HTTP from a remote browser. Lab/sandbox only."
+  type        = bool
+  default     = true
 }
 
 variable "node_major_version" {

@@ -33,13 +33,19 @@ output "bootstrap_log_path" {
   value       = "C:\\bootstrap\\bootstrap.log"
 }
 
+output "ollama_model" {
+  description = "Ollama model configured for OpenClaw (null when install_ollama is false)."
+  value       = var.install_ollama ? var.ollama_model : null
+}
+
 output "next_steps" {
   description = "Post-deploy configuration required on the VM."
   value       = <<-EOT
     1. RDP to the VM and review C:\bootstrap\bootstrap.log
     2. Read gateway URL + token from C:\openclaw\gateway-access.txt
-    3. Add OPENAI_API_KEY or ANTHROPIC_API_KEY to C:\openclaw\config\.env, then run: powershell -File C:\openclaw\start-gateway.ps1 -Restart
-    4. Open the Control UI at the gateway URL from your browser and paste the token
-    5. Configure MXC processcontainer backend per OpenClaw + @microsoft/mxc-sdk docs
+    3. Open the Control UI at the gateway URL from your browser and paste the token
+    4. When install_ollama is true, confirm model pull in C:\bootstrap\ollama-pull.log (ollama/${var.ollama_model})
+    5. OpenClaw uses local Ollama at http://127.0.0.1:11434 once the model pull completes
+    6. Configure MXC processcontainer backend per OpenClaw + @microsoft/mxc-sdk docs
   EOT
 }

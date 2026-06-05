@@ -2,13 +2,16 @@
 # cp terraform.tfvars.example terraform.tfvars
 
 # subscription_id = "00000000-0000-0000-0000-000000000000"
-location = "eastus"
+location = "canadacentral"
 
 admin_password = "ChangeMe-StrongPassw0rd!"
 
+# Azure for Students: DSv5 quota may be 0; DSv3 often works.
+vm_size = "Standard_D4s_v3"
+
 # Restrict inbound access in non-lab environments.
-allowed_rdp_cidr      = "203.0.113.10/32"
-allowed_gateway_cidr  = "203.0.113.10/32"
+allowed_rdp_cidr     = "203.0.113.10/32"
+allowed_gateway_cidr = "203.0.113.10/32"
 
 # If win11-24h2-ent-g2 is unavailable in your subscription/region, try:
 # windows_image = {
@@ -18,4 +21,8 @@ allowed_gateway_cidr  = "203.0.113.10/32"
 #   version   = "latest"
 # }
 
-mxc_sdk_version = "0.6.0-alpha"
+mxc_sdk_version = "0.6.1"
+
+# Local LLM via Ollama (no OpenAI/Anthropic key required)
+install_ollama = true
+ollama_model   = "llama3.2:3b"
