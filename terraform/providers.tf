@@ -10,5 +10,6 @@ provider "azurerm" {
     }
   }
 
-  subscription_id = var.subscription_id
+  # Omit subscription_id to use the Azure CLI default subscription.
+  subscription_id = var.subscription_id != null ? var.subscription_id : null
 }

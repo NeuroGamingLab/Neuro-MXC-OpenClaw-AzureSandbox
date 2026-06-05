@@ -32,7 +32,8 @@ resource "azurerm_windows_virtual_machine" "main" {
   }
 
   # Required for WSL2 / future Hyper-V and micro-VM MXC backends on Dsv5.
-  vtpm_enabled = true
+  vtpm_enabled           = true
+  extensions_time_budget = "PT2H"
 
   timezone = "UTC"
 }
@@ -52,8 +53,13 @@ resource "azurerm_virtual_machine_extension" "bootstrap" {
   })
 
   protected_settings = jsonencode({
-    commandToExecute = "powershell.exe -NoProfile -ExecutionPolicy Bypass -File bootstrap.ps1 -NodeMajor ${var.node_major_version} -MxcSdkVersion ${var.mxc_sdk_version} -OpenClawPackage \"${var.openclaw_npm_package}\" -GatewayPort ${var.openclaw_gateway_port}"
+    commandToExecute = "powershell.exe -NoProfile -ExecutionPolicy Bypass -File bootstrap.ps1 -NodeMajor ${var.node_major_version} -MxcSdkVersion ${var.mxc_sdk_version} -OpenClawPackage \"${var.openclaw_npm_package}\" -GatewayPort ${var.openclaw_gateway_port} -OllamaModel \"${var.ollama_model}\" -InstallOllama \"${lower(tostring(var.install_ollama))}\" -DisableControlUiDeviceAuth \"${lower(tostring(var.openclaw_control_ui_disable_device_auth))}\""
   })
+
+  timeouts {
+    create = "2h"
+    delete = "30m"
+  }
 
   depends_on = [
     azurerm_storage_blob.bootstrap,

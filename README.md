@@ -10,12 +10,15 @@ Deploy **OpenClaw** on **Azure** in one Terraform apply: a Windows 11 VM with **
 
 Enforcing physical boundaries via MXC and OpenClaw
 
+![Architecture: OpenClaw inside MXC on Windows OS](image.png)
+
 OpenClaw runs inside MXC containers on Windows. Multi-step agent actions are constrained by **OS-enforced boundaries**, reducing unrestricted access to the host session. Developers and IT administrators define boundary rules through MXC’s policy-driven profiles.
 
 
 | Layer                | Role                                                                |
 | -------------------- | ------------------------------------------------------------------- |
 | **OpenClaw**         | Open-source AI agent runtime (gateway, tools, channels)             |
+| **Ollama + llama3.2:3b** | Local LLM inference (no cloud API key required)                 |
 | **MXC**              | Policy-driven, OS-level sandbox for untrusted code / tool execution |
 | **Windows 11 24H2+** | Required host OS for MXC client backends                            |
 | **Azure VM**         | Terraform-provisioned compute in `canadacentral` (configurable)     |
@@ -36,7 +39,15 @@ OpenClaw runs inside MXC containers on Windows. Multi-step agent actions are con
 [OpenClaw](https://github.com/openclaw/openclaw) is an MXC launch partner. In this project:
 
 - **OpenClaw** runs the agent and gateway
+- **Ollama** provides local inference with **llama3.2:3b** by default (configurable via `ollama_model`)
 - **MXC** sandboxes the agent’s tool and code execution via the `processcontainer` backend (stable, no nested virtualization required)
+
+```
+Browser → OpenClaw Gateway → Agent → Ollama (llama3.2:3b)  ← local inference
+                               └→ MXC processcontainer    ← tool/code sandbox
+```
+
+Ollama listens on **localhost:11434 only** — it is not exposed in the Azure NSG.
 
 ---
 
@@ -48,9 +59,10 @@ OpenClaw runs inside MXC containers on Windows. Multi-step agent actions are con
 | Region    | `canadacentral`                                                  |
 | OS        | Windows 11 Enterprise 24H2                                       |
 | VM size   | `Standard_D4s_v3` (adjust for your quota)                        |
-| Runtime   | Node 24, `@microsoft/mxc-sdk`, OpenClaw                          |
+| Runtime   | Node 24, `@microsoft/mxc-sdk`, OpenClaw, Ollama                  |
+| LLM       | `llama3.2:3b` via Ollama (`install_ollama = true`)               |
 | Network   | Public IP, NSG rules for RDP (3389) and OpenClaw gateway (18789) |
-| Bootstrap | Custom Script Extension installs and configures the gateway      |
+| Bootstrap | Custom Script Extension installs gateway; Ollama model pull runs in background |
 
 
 ---
@@ -60,7 +72,9 @@ OpenClaw runs inside MXC containers on Windows. Multi-step agent actions are con
 - [Azure CLI](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli) (`az login`)
 - [Terraform](https://developer.hashicorp.com/terraform/install) >= 1.5
 - Azure subscription that can deploy **Windows 11 Enterprise** images (Dev/Test, AVD licensing, or equivalent)
-- AI provider API key (OpenAI, Anthropic, etc.) for OpenClaw
+- **No cloud LLM API key required** when `install_ollama = true` (default)
+- **8 GB+ RAM** recommended for `llama3.2:3b` on CPU (standard Azure SKUs have no GPU)
+- First `terraform apply` may take **30–60 minutes** while the bootstrap extension runs (Terraform polls for up to 2 hours)
 
 ---
 
@@ -94,27 +108,30 @@ terraform output
 1. Install **Microsoft Remote Desktop** from the Mac App Store
 2. Connect to `terraform output -raw vm_public_ip` as `azureuser` with your `admin_password`
 
-### OpenClaw gateway
+### OpenClaw gateway + Ollama
 
 On the VM:
 
-1. Read `C:\openclaw\gateway-access.txt` for the gateway URL and token
-2. Add `OPENAI_API_KEY` or `ANTHROPIC_API_KEY` to `C:\openclaw\config\.env`
-3. Restart: `powershell -File C:\openclaw\start-gateway.ps1 -Restart`
+1. Read `C:\openclaw\gateway-access.txt` for the gateway URL, token, and model info
+2. Confirm Ollama model pull: `Get-Content C:\bootstrap\ollama-pull.log -Tail 20`
+3. Confirm Ollama: `ollama list` (models in `C:\ollama\models`)
+4. Open the Control UI from your browser (port **18789**) and paste the gateway token
 
-From your browser, open the gateway URL (default port **18789**) and paste the gateway token.
+OpenClaw is preconfigured to use **`ollama/<ollama_model>`** (default `ollama/llama3.2:3b`) via the native Ollama API (`api: "ollama"`). Bootstrap sets `gateway.controlUi.allowedOrigins` and, for lab use, `dangerouslyDisableDeviceAuth` so the Control UI works over plain HTTP from your browser (not just localhost). For production, use HTTPS or RDP into the VM and open `http://127.0.0.1:18789` instead.
 
-If you see **“Browser origin not allowed”**, add your origin to `gateway.controlUi.allowedOrigins` in `C:\openclaw\config\openclaw.json`, then restart the gateway. Example:
+To use a cloud provider instead, set `install_ollama = false` in `terraform.tfvars` and add API keys to `C:\openclaw\config\.env`.
 
-```json
-"controlUi": {
-  "allowedOrigins": [
-    "http://localhost:18789",
-    "http://127.0.0.1:18789",
-    "http://YOUR_VM_PUBLIC_IP:18789"
-  ]
-}
-```
+### OpenClaw Control UI
+
+After `terraform apply`, open the gateway URL from `terraform output` (port **18789**), paste the token from `C:\openclaw\gateway-access.txt`, and click **Connect**.
+
+**Overview** — gateway WebSocket URL, token auth, and live status (`OK`, uptime, tick interval):
+
+![OpenClaw Control UI — Overview dashboard with gateway access and status](image6.png)
+
+**Chat** — talk to the assistant with local **Ollama (`llama3.2:3b`)**; workspace files (`AGENTS.md`, `SOUL.md`, etc.) appear in the sidebar:
+
+![OpenClaw Control UI — Chat with Ollama llama3.2:3b and workspace files](image5.png)
 
 ---
 
@@ -122,10 +139,12 @@ If you see **“Browser origin not allowed”**, add your origin to `gateway.con
 
 ```
 .
-├── image.png                 # Architecture diagram
+├── image.png                 # Architecture diagram (MXC + OpenClaw on Windows)
+├── image5.png                # OpenClaw Control UI — Chat + Ollama
+├── image6.png                # OpenClaw Control UI — Overview / gateway access
 ├── instructions.txt          # Original design brief
 ├── scripts/
-│   └── bootstrap.ps1         # VM bootstrap (Node, MXC SDK, OpenClaw gateway)
+│   └── bootstrap.ps1         # VM bootstrap (Node, MXC SDK, Ollama, OpenClaw gateway)
 └── terraform/
     ├── main.tf
     ├── network.tf
@@ -153,6 +172,8 @@ This is a **lab / sandbox** template, not production-hardened:
 
 - [OpenClaw](https://github.com/openclaw/openclaw)
 - [OpenClaw Gateway docs](https://docs.openclaw.ai/gateway)
+- [OpenClaw Ollama provider](https://docs.openclaw.ai/providers/ollama)
+- [Ollama on Windows](https://docs.ollama.com/windows)
 - [Microsoft MXC](https://github.com/microsoft/mxc)
 - [@microsoft/mxc-sdk on npm](https://www.npmjs.com/package/@microsoft/mxc-sdk)
 
